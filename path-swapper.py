@@ -44,10 +44,11 @@ def getNetworkFromMount(mountPath):
 def getMountFromNetwork(networkPath):
     df = subprocess.Popen(["df", "-T", "smbfs"], stdout=subprocess.PIPE)
     for m in df.stdout.readlines():
+        mount = m.decode("ascii")
         # Skip the header line when parsing STDOUT
-        if not m.startswith("Filesystem"):
-            uncPath = m.split()[0]
-            mountLoc = m.split()[8]
+        if not mount.startswith("Filesystem"):
+            uncPath = mount.split()[0]
+            mountLoc = mount.split()[8]
             serverPath = uncPath.split("@")[1].lower()
             if serverPath.lower() == networkPath.lower():
                 return mountLoc
@@ -144,22 +145,17 @@ def swapClipboard():
         # Now, let's go through the contents!
         if clipValue[:2] == "\\\\":
             # We likely have a windows path!
-            smbPath = convertToSmb(clipValue)
-            # volPath = convertToVolume(clipValue, False)
-
-            # Copy smbPath to the clipboard
-            setClipboard(smbPath)
-
-            # if volPath is not None:
-            # Looks like we have a folder... could have option to open in Finder
-
-            print("✅ Converted Windows path to macOS path")
+            volPath = convertToVolume(clipValue, False)
+            if volPath is not None:
+                setClipboard(volPath)
+                print("✅ Converted Windows path to mounted macOS volume path")
+            else:
+                smbPath = convertToSmb(clipValue)
+                setClipboard(smbPath)
+                print("✅ Converted Windows path to macOS path")
             return
         elif clipValue is not None and clipValue[:6] == "smb://":
             # We likely have a smb:// path
-            # volPath = convertToVolume(clipValue, True)
-            # if volPath is not None:
-            # Looks like we have a folder... could have option to open in Finder
             # Check for windows path to copy
             winPath = convertToWindows(clipValue, True)
             if winPath is not None:
